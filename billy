@@ -1,0 +1,348 @@
+#! /bin/perl
+ 
+# SPDX-License-Identifier: GPL-2.0+
+# Copyright (C) 2018 Abinav Puthan Purayil
+
+use strict;
+use warnings;
+
+use feature "say";
+use v5.10;
+
+use Data::Dumper;
+use Getopt::Long;
+
+sub num_commify {
+	my $text = reverse $_[0];
+	$text =~ s/(\d\d\d)(?=\d)(?!\d*\.)/$1,/g;
+	return scalar reverse $text;
+}
+
+sub atoi {
+	my ($num) = @_;
+	if ($num =~ /^\s*$/) {
+		return 0;
+	}
+	$num =~ s/[,\s]//g;
+	return $num;
+}
+
+sub is_blank_or_comment_line {
+	my ($line) = @_;
+	if ($line =~ /^\s*#.*$/ || $line =~ /^\s*$/) {
+		return 1;
+	}
+	return 0;
+}
+
+# TODO: verify the valid_attrs specified by path_trans
+sub trans_struct_set {
+	my ($path_trans, $trans_struct) = @_;
+
+	open(my $fh_trans, "<", $path_trans) || die("Can't open $path_trans");
+	while (my $line = <$fh_trans>) {
+		if (is_blank_or_comment_line($line)) {
+			;
+
+		# <bank_name> {
+		} elsif ($line =~ /^\s*([a-zA-Z0-9_]+)\s*\{\s*$/) {
+			my $bank_name = $1;
+
+			while (($line = <$fh_trans>)) {
+				if (is_blank_or_comment_line($line)) {
+					next;
+				}
+
+				if ($line !~ m/^\s*\}\s*$/) {
+					$line =~ /^\s*([a-zA-Z0-9_]+)\s*(.*)\s*$/;
+					my $regex_frag_name = $1;
+					my $regex_frag = $2;
+
+					if ($regex_frag_name =~ /^(date|narr|wdrw|dep)$/) {
+						$$trans_struct{$bank_name}{regex} .= "(?<$regex_frag_name>" . 
+							$regex_frag . ")";
+					} else {
+						$$trans_struct{$bank_name}{regex} .= $regex_frag;
+					}
+					next;
+				} else {
+					last;
+				}
+				die ("Parsing error: bank not closed at $line");
+			}
+
+		# unrecognized
+		} else {
+			die ("Parsing error: Unrecognized line at $.: $line");
+		}
+	}
+}
+
+sub trans_struct_verify {
+	my ($trans_struct) = @_;
+
+	foreach my $bank(keys %{$trans_struct}) {
+		if (!defined $$trans_struct{$bank}{regex} || !$$trans_struct{$bank}{regex}) {
+			die "Undefined regex for bank: $bank";
+		}
+	}
+}
+
+
+sub cat_struct_set {
+	my ($path_cat, $cat_struct) = @_;
+
+	open(my $fh_cat, "<", $path_cat) || die("Can't open $path_cat");
+	while (my $line = <$fh_cat>) {
+
+		if (is_blank_or_comment_line($line)) {
+			;
+
+		# cat-def start state : <cat_name> [hook_type] {
+		# espace {} to reduce headache for vim
+		} elsif ($line =~ /^\s*([a-zA-Z0-9_]+)\s*([a-z_]*)\s*\{\s*$/) {
+
+			my $cat_name = $1;
+			my $hook_type = "";
+
+			if (my @cat_def = $line =~ /^\s*([a-zA-Z0-9_]+)\s+([a-z_]+)\s*\{\s*$/) {
+				# this cat has a hook :D
+				$cat_name = $1;
+				$hook_type = $2;
+			}
+
+			my $i = 0;
+			while (($line = <$fh_cat>)) {
+
+				if (is_blank_or_comment_line($line)) {
+					next;
+				}
+
+				# cat's regex list state
+				if ($line !~ m/^\s*\}\s*$/) {
+					$line =~ /^\s*(.*)\s*$/;
+					if ($hook_type eq "") { # regex-list cat-def
+						$$cat_struct{$cat_name}{arr_regex}[$i++] = $1;
+					} else { # hooks's ins
+						$$cat_struct{$cat_name}{hooks}{$hook_type} .= $1 . "\n";
+					}
+					next;
+
+				# cat-def end state : }
+				} else {
+					$$cat_struct{$cat_name}{narr} = "";
+					$$cat_struct{$cat_name}{count} = 0;
+					$$cat_struct{$cat_name}{dep_total} = 0;
+					$$cat_struct{$cat_name}{wdrw_total} = 0;
+					last;
+				}
+
+				# cat def not closed
+				die ("Parsing error: def not closed at $line");
+			}
+
+		} else {
+			die ("Parsing error: Unrecognized line at $.: $line");
+		}
+	}
+}
+
+sub cat_struct_insert {
+	my ($cat_struct, $cat_name, %words) = @_;
+
+	$$cat_struct{$cat_name}{narr} .= "$words{date} \t $words{narr} \t " .
+		"$words{wdrw} \t $words{dep} \n";
+	
+	$$cat_struct{$cat_name}{wdrw_total} += atoi($words{wdrw});
+	$$cat_struct{$cat_name}{dep_total} += atoi($words{dep});
+	$$cat_struct{$cat_name}{count}++;
+}
+
+sub cat_struct_fill {
+	my ($cat_struct, $trans_struct) = @_;
+
+	foreach my $bank(keys %{$trans_struct}) {
+		foreach my $path_stmt(@{$$trans_struct{$bank}{path_stmts}}) {
+			open(my $fh_stmt, "<", $path_stmt) || die("Can't open $path_stmt");
+
+			while (my $line = <$fh_stmt>) {
+				if ($line !~ /$$trans_struct{$bank}{regex}/) {
+					next;
+				} # else
+
+				my %words = %+;
+				my $found_cat = 0;
+				foreach my $cat_name (keys %{$cat_struct}) {
+					foreach (@{$$cat_struct{$cat_name}{arr_regex}}) {
+						# ignore case for regex
+						if ($words{narr} !~ /$_/i) {
+							next;
+						} # else
+						$found_cat = 1;
+						cat_struct_insert($cat_struct, $cat_name, %words);
+					}
+				}
+				if (!$found_cat) { # uncategorized entries
+					cat_struct_insert($cat_struct, '__uncat__', %words);
+				}
+			}
+		}
+	}
+}
+
+sub cat_print {
+	my ($cat_struct) = @_;
+
+	foreach my $cat_name (sort keys %{$cat_struct}) {
+		say "CATEGORY : $cat_name";
+		say "=====================";
+		print $$cat_struct{$cat_name}{narr};
+		print "---------\n";
+		say "Total transaction count : $$cat_struct{$cat_name}{count}";
+		say "Withdrawal total : " . 
+			num_commify($$cat_struct{$cat_name}{wdrw_total});
+		say "Deposit total : " . 
+			num_commify($$cat_struct{$cat_name}{dep_total});
+		print "\n\n\n";
+	}
+}
+
+sub cathook_overall {
+	my ($cat_struct, $cat_name) = @_;
+
+	my @lines = split(/\n+/, $$cat_struct{$cat_name}{hooks}{overall});
+
+	foreach my $line (@lines) {
+		my @words = split(/\s+/, $line);
+		my $cmd = $words[0];
+
+		if ($cmd eq "donate") {
+			my $cat_from = $cat_name;
+			my $cat_to = $words[1];
+			my $cat_attr = $words[2];
+
+			my $curr_val_from = $$cat_struct{$cat_from}{$cat_attr};
+			my $curr_val_to = $$cat_struct{$cat_to}{$cat_attr};
+
+			# if ($curr_val_from < $curr_val_to) {
+				# next;
+			# }
+
+			my $delta_val = defined $words[3] ? $words[3] : $curr_val_from;
+
+			$$cat_struct{$cat_to}{$cat_attr} += $delta_val;
+			$$cat_struct{$cat_from}{$cat_attr} -= $delta_val;
+
+		} elsif ($cmd eq "del") {
+			my $cat_attr = $words[1];
+			my $delta_val = defined $words[2] ? $words[2] : 
+				$$cat_struct{$cat_name}{$cat_attr};
+			$$cat_struct{$cat_name}{$cat_attr} -= $delta_val;
+		}
+	}
+}
+
+sub cathook_do {
+	my ($cat_struct) = @_;
+
+	foreach my $cat_name (sort keys %$cat_struct) {
+		foreach my $hook_type (sort keys %{$$cat_struct{$cat_name}{hooks}}) {
+			if ($hook_type eq "overall") {
+				cathook_overall($cat_struct, $cat_name);
+			}
+		}
+	}
+
+}
+
+sub cat_print_overall {
+	my ($cat_struct, $x_total) = @_;
+
+	my $grand_total = 0;
+
+	say "$x_total";
+	say "==========";
+	foreach my $cat_name (sort keys %$cat_struct) {
+		if (!$$cat_struct{$cat_name}{$x_total}) {
+			next;
+		}
+
+		$grand_total += $$cat_struct{$cat_name}{$x_total};
+		printf( "%15s : %10s\n\n", $cat_name, 
+			num_commify($$cat_struct{$cat_name}{$x_total}));
+	}
+	say "------------------";
+	printf("%15s : %10s\n\n\n\n", "grand total", 
+		num_commify($grand_total));
+}
+
+sub usage() {
+	print 
+	"Usage: billy [OPTIONS]\n" .
+	"billy categorizes bank statements
+
+	-c <path/to/cat>
+	-t <path/to/trans>
+	-b <foobank> sets bank as foobank for the _following_ -s
+	-s <foobank_stmt1> [foo_bank_stmt2] ...
+	-h --help to view this
+	-v --version\n";
+}
+
+my %trans_struct;
+my %cat_struct;
+
+my $opt_bank = "";
+my $opt_path_cat = "";
+my $opt_path_trans = "";
+
+sub opt_handler_path_stmts {
+	my ($opt, $value) = @_;
+
+	if (!$opt_bank) {
+		die "Bank not set";
+	}
+
+	push(@{$trans_struct{$opt_bank}{path_stmts}}, $value);
+}
+
+sub opt_handler_help {
+	usage();
+	exit 0;
+}
+
+sub opt_handler_version {
+	say "billy v0.1";
+	say "(C) 2018 Abinav Puthan Purayil";
+	exit 0;
+}
+
+GetOptions(
+	"c=s" => \$opt_path_cat,
+	"t=s" => \$opt_path_trans,
+	"b=s" => \$opt_bank,
+	"s=s{1,}" => \&opt_handler_path_stmts,
+	"help" => \&opt_handler_help,
+	"version" => \&opt_handler_version
+) or die "Error parsing cmdline";
+
+if (!$opt_path_cat || !$opt_path_trans) {
+	print STDERR "Invalid cmdline\n";
+	usage();
+	exit 1;
+}
+
+trans_struct_set($opt_path_trans, \%trans_struct);
+trans_struct_verify(\%trans_struct);
+cat_struct_set($opt_path_cat, \%cat_struct);
+
+cat_struct_fill(\%cat_struct, \%trans_struct);
+
+cat_print(\%cat_struct);
+
+cathook_do(\%cat_struct);
+
+cat_print_overall(\%cat_struct, 'dep_total');
+cat_print_overall(\%cat_struct, 'wdrw_total');
+
+exit 0;

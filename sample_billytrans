@@ -1,0 +1,55 @@
+# This is a comment.
+# Comments are only allowed outside "bank{} blocks".
+#
+# bank_name {
+# 	valid_attr1	regex_frag_for_attr1
+# 	valid_attr2	regex_frag_for_attr2
+# 	dummy	regex_frag_3
+# 	another_dummy	regex_frag_4
+# 	...
+# }
+#
+# valid_attrs so far include date, narr, wdrw, dep.
+# (narr means narration or description, wdrw is withdrawal amount and dep
+# is deposit amount).
+# Dummies are merely for your eyes (they could be delimiters in the
+# statement or some unnecessary details).
+# The regex  is "glued" together from top to bottom within {}, so the order
+# is important. For the above example the final regex would be
+# 'valid_attr1valid_attr2dummyanother_dummy'
+#
+# Study your bank's statement thoroughly.
+#
+# WARNING: Do not use named capture-groups with the names same as the
+# valid_attrs specified above. They are reserved.
+#
+# Below are 2 real examples for the text statement of 2 banks in India.
+
+hdfc {
+	beg			^
+	date		\d\d/\d\d/\d\d
+	_ 			\s{2}
+	narr		[[:print:]]{40}
+	_ 			\s{2}
+	_refno		[\w\s]{16}
+	_ 			\s{2}
+	_date		\d\d/\d\d/\d\d\s{2}
+	wdrw		[0-9\.,\s]{18}
+	_ 			\s{2}
+	dep			[0-9\.,\s]{18}
+	_ 			\s{2}
+	_bal		[0-9\.,\s]{18}\s{2}
+	end			$
+}
+
+axis {
+	beg			^
+	date		\d\d-\d\d-\d\d\d\d
+	_			\ {10}-\ {15}
+	narr		[[:print:]]{70}
+	_			\ {2}
+	wdrw		[0-9\.\s]{10}
+	_			\ {1}
+	dep			[0-9\.,\s]{10}
+	end			.*$
+}

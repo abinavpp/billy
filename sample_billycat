@@ -1,0 +1,75 @@
+# This is a comment.
+# Comments are only allowed outside cat definitions.
+#
+# The syntax of cat-regex-list definition is
+# <cat_name> {
+# 	<regex_1>
+# 	<regex_2>
+# }
+# which makes <regex_1> and <regex_2> associated with <cat_name>, to be
+# matched with the narration of each entries.
+#
+# The syntax of cat-hook definition is 
+# <already_defined_cat_name> <hook_type> {
+# 	<hook_type_instr>
+# 	<hook_type_instr>
+# }
+# The only implemented hook is the overall hook that only affects the
+# overall output at the end.
+#
+# The only reserved cat is __uncat__ which holds the entries uncaught by the
+# user-defined. You can add hooks to it, but do not define a cat-regex-list
+# for it!
+
+
+food {
+	.*swiggy.*
+	.*tibet\s*kitchen.*
+	.*hotel\ foobar.*
+}
+
+groceries {
+	.*bigbasket.*
+	.*max\ hypermarket.*
+}
+
+transport {
+	.*uber.*
+	.*ola.*
+	.*makemytrip.*
+}
+
+shopping {
+	.*amazon.*
+	.*flipkart.*
+}
+
+# you can have empty cat-def too (if they are used by any hook)
+misc {
+}
+
+cash_in_hand {
+}
+
+# The overall hook instructions affect only the final summary.
+# For eg the instruction in __uncat__,
+# donate misc wdrw_total 200
+# does misc{wdrw_total} += 200, __uncat__{wdrw_total} -= 200
+#
+#
+# donate
+# ------
+# donate <whom> <what> [amt]
+# if amt is empty then the remainder amount will be donated
+#
+# del
+# ---
+# del <what> [amt]
+# if amt is empty then the remainder amount will be deleted.
+
+
+__uncat__ overall {
+	del wdrw_total 100
+	donate misc wdrw_total 200
+	donate cash_in_hand wdrw_total
+}
