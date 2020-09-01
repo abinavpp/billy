@@ -12,6 +12,12 @@ use v5.10;
 use Data::Dumper;
 use Getopt::Long;
 
+sub print_heading {
+  my ($heading) = @_;
+  say $heading;
+  say "=" x length($heading);
+}
+
 sub num_commify {
   my $text = reverse $_[0];
   $text =~ s/(\d\d\d)(?=\d)(?!\d*\.)/$1,/g;
@@ -192,10 +198,9 @@ sub cat_print {
   my ($cat_struct) = @_;
 
   foreach my $cat_name (sort keys %{$cat_struct}) {
-    say "CATEGORY: $cat_name";
-    say "=====================";
+    print_heading("CATEGORY: $cat_name");
     print $$cat_struct{$cat_name}{narr};
-    print "---------\n";
+    print "\n";
     say "Total transaction count: $$cat_struct{$cat_name}{count}";
     say "debit_total: "
       . num_commify($$cat_struct{$cat_name}{debit_total});
@@ -254,8 +259,7 @@ sub cat_print_overall {
 
   my $grand_total = 0;
 
-  say "$x_total";
-  say "==========";
+  print_heading($x_total);
   foreach my $cat_name (sort keys %$cat_struct) {
     if (!$$cat_struct{$cat_name}{$x_total}) {
       next;
@@ -265,8 +269,8 @@ sub cat_print_overall {
     printf("%15s: %10s\n\n", $cat_name,
       num_commify($$cat_struct{$cat_name}{$x_total}));
   }
-  say "------------------";
-  printf("%15s: %10s\n\n\n\n", "grand total",
+  print "\n";
+  printf("%15s: %10s\n", "grand total",
     num_commify($grand_total));
 }
 
@@ -337,6 +341,7 @@ cat_print(\%cat_struct);
 cathook_do(\%cat_struct);
 
 cat_print_overall(\%cat_struct, 'credit_total');
+print("\n\n\n");
 cat_print_overall(\%cat_struct, 'debit_total');
 
 exit 0;
