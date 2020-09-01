@@ -14,12 +14,10 @@
 #   <hook_type_instr>
 #   <hook_type_instr>
 # }
-# The only implemented hook is the overall hook that only affects the
-# overall output at the end.
 #
 # The only reserved cat is __uncat__ which holds the entries uncaught by the
-# user-defined. You can add hooks to it, but do not define a cat-regex-list
-# for it!
+# user-defined cat(s). You can add hooks to it, but do not define a
+# cat-regex-list for it!
 
 
 food {
@@ -51,11 +49,12 @@ misc {
 cash_in_hand {
 }
 
+# overall hook
+# ============
 # The overall hook instructions affect only the final summary.
 # For eg the instruction in __uncat__,
 # donate misc debit_total 200
 # does misc{debit_total} += 200, __uncat__{debit_total} -= 200
-#
 #
 # donate
 # ------
@@ -67,6 +66,13 @@ cash_in_hand {
 # del <what> [amt]
 # if amt is empty then the remainder amount will be deleted.
 
+# local hook
+# ==========
+# The local hook instructions affect only the local summaries.
+#
+# hide
+# ----
+# hides this category completely
 
 __uncat__ overall {
   del debit_total 100
