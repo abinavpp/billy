@@ -44,7 +44,7 @@ sub is_blank_or_comment_line {
 sub trans_struct_set {
   my ($path_trans, $trans_struct) = @_;
 
-  open(my $fh_trans, "<", $path_trans) || die("Can't open $path_trans");
+  open(my $fh_trans, "<", $path_trans) || die("can't open $path_trans");
   while (my $line = <$fh_trans>) {
     if (is_blank_or_comment_line($line)) {
       ;
@@ -73,12 +73,12 @@ sub trans_struct_set {
         } else {
           last;
         }
-        die ("Parsing error: bank not closed at $line");
+        die ("parsing error: bank not closed at $line");
       }
 
     # unrecognized
     } else {
-      die ("Parsing error: Unrecognized line at $.: $line");
+      die ("parsing error: Unrecognized line at $.: $line");
     }
   }
 }
@@ -88,7 +88,7 @@ sub trans_struct_verify {
 
   foreach my $bank(keys %{$trans_struct}) {
     if (!defined $$trans_struct{$bank}{regex} || !$$trans_struct{$bank}{regex}) {
-      die "Undefined regex for bank: $bank";
+      die "undefined regex for bank: $bank";
     }
   }
 }
@@ -96,7 +96,7 @@ sub trans_struct_verify {
 sub cat_struct_set {
   my ($path_cat, $cat_struct) = @_;
 
-  open(my $fh_cat, "<", $path_cat) || die("Can't open $path_cat");
+  open(my $fh_cat, "<", $path_cat) || die("can't open $path_cat");
   while (my $line = <$fh_cat>) {
 
     if (is_blank_or_comment_line($line)) {
@@ -142,11 +142,11 @@ sub cat_struct_set {
         }
 
         # cat def not closed
-        die ("Parsing error: def not closed at $line");
+        die ("parsing error: def not closed at $line");
       }
 
     } else {
-      die ("Parsing error: Unrecognized line at $.: $line");
+      die ("parsing error: Unrecognized line at $.: $line");
     }
   }
 }
@@ -167,7 +167,7 @@ sub cat_struct_fill {
 
   foreach my $bank(keys %{$trans_struct}) {
     foreach my $path_stmt(@{$$trans_struct{$bank}{path_stmts}}) {
-      open(my $fh_stmt, "<", $path_stmt) || die("Can't open $path_stmt");
+      open(my $fh_stmt, "<", $path_stmt) || die("can't open $path_stmt");
 
       while (my $line = <$fh_stmt>) {
         if ($line !~ /$$trans_struct{$bank}{regex}/) {
@@ -198,10 +198,11 @@ sub cat_print {
   my ($cat_struct) = @_;
 
   foreach my $cat_name (sort keys %{$cat_struct}) {
-    print_heading("CATEGORY: $cat_name");
+    if ($$cat_struct{$cat_name}{hide}) { next; }
+    print_heading("category: $cat_name");
     print $$cat_struct{$cat_name}{narr};
     print "\n";
-    say "Total transaction count: $$cat_struct{$cat_name}{count}";
+    say "num of transactions: $$cat_struct{$cat_name}{count}";
     say "debit_total: "
       . num_commify($$cat_struct{$cat_name}{debit_total});
     say "credit_total: "
@@ -241,17 +242,35 @@ sub cathook_overall {
   }
 }
 
+sub cathook_local {
+  my ($cat_struct, $cat_name) = @_;
+
+  my @lines = split(/\n+/, $$cat_struct{$cat_name}{hooks}{local});
+
+  foreach my $line (@lines) {
+    my @words = split(/\s+/, $line);
+    my $cmd = $words[0];
+
+    if ($cmd eq "hide") {
+      $$cat_struct{$cat_name}{hide} = 1;
+    }
+  }
+}
+
 sub cathook_do {
-  my ($cat_struct) = @_;
+  my ($cat_struct, $hook_type_arg) = @_;
+  my %hook_handle_map = (
+    "overall" => \&cathook_overall,
+    "local" => \&cathook_local
+  );
 
   foreach my $cat_name (sort keys %$cat_struct) {
     foreach my $hook_type (sort keys %{$$cat_struct{$cat_name}{hooks}}) {
-      if ($hook_type eq "overall") {
-        cathook_overall($cat_struct, $cat_name);
+      if ($hook_type eq $hook_type_arg) {
+        $hook_handle_map{$hook_type}($cat_struct, $cat_name);
       }
     }
   }
-
 }
 
 sub cat_print_overall {
@@ -276,15 +295,15 @@ sub cat_print_overall {
 
 sub usage() {
   print
-  "billy categorizes bank statements\n" .
-  "Usage: billy [OPTIONS]
+"Usage: billy [OPTIONS]
+billy categorizes bank statements
 
   -c <path/to/cat>
   -t <path/to/trans>
   -b <foobank> sets bank as foobank for the _following_ -s
   -s <foobank_stmt1> [foo_bank_stmt2] ...
   -h --help to view this
-  -v --version\n\n";
+  -v --version\n";
 }
 
 my %trans_struct;
@@ -322,10 +341,10 @@ GetOptions(
   "s=s{1,}" => \&opt_handler_path_stmts,
   "help" => \&opt_handler_help,
   "version" => \&opt_handler_version
-) or die "Error parsing cmdline";
+) or die "error parsing cmdline";
 
 if (!$opt_path_cat || !$opt_path_trans) {
-  print STDERR "Invalid cmdline\n";
+  print STDERR "invalid cmdline\n";
   usage();
   exit 1;
 }
@@ -336,10 +355,10 @@ cat_struct_set($opt_path_cat, \%cat_struct);
 
 cat_struct_fill(\%cat_struct, \%trans_struct);
 
+cathook_do(\%cat_struct, 'local');
 cat_print(\%cat_struct);
 
-cathook_do(\%cat_struct);
-
+cathook_do(\%cat_struct, 'overall');
 cat_print_overall(\%cat_struct, 'credit_total');
 print("\n\n\n");
 cat_print_overall(\%cat_struct, 'debit_total');
