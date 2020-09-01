@@ -53,8 +53,8 @@ cash_in_hand {
 
 # The overall hook instructions affect only the final summary.
 # For eg the instruction in __uncat__,
-# donate misc wdrw_total 200
-# does misc{wdrw_total} += 200, __uncat__{wdrw_total} -= 200
+# donate misc debit_total 200
+# does misc{debit_total} += 200, __uncat__{debit_total} -= 200
 #
 #
 # donate
@@ -69,7 +69,7 @@ cash_in_hand {
 
 
 __uncat__ overall {
-	del wdrw_total 100
-	donate misc wdrw_total 200
-	donate cash_in_hand wdrw_total
+	del debit_total 100
+	donate misc debit_total 200
+	donate cash_in_hand debit_total
 }

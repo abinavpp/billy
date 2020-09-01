@@ -9,9 +9,8 @@
 # 	...
 # }
 #
-# valid_attrs so far include date, narr, wdrw, dep.
-# (narr means narration or description, wdrw is withdrawal amount and dep
-# is deposit amount).
+# valid_attrs so far include date, narr, debit, credit.
+# (narr means narration or description)
 # Dummies are merely for your eyes (they could be delimiters in the
 # statement or some unnecessary details).
 # The regex  is "glued" together from top to bottom within {}, so the order
@@ -34,9 +33,9 @@ hdfc {
 	_refno		[\w\s]{16}
 	_ 			\s{2}
 	_date		\d\d/\d\d/\d\d\s{2}
-	wdrw		[0-9\.,\s]{18}
+	debit		[0-9\.,\s]{18}
 	_ 			\s{2}
-	dep			[0-9\.,\s]{18}
+	credit			[0-9\.,\s]{18}
 	_ 			\s{2}
 	_bal		[0-9\.,\s]{18}\s{2}
 	end			$
@@ -48,8 +47,8 @@ axis {
 	_			\ {10}-\ {15}
 	narr		[[:print:]]{70}
 	_			\ {2}
-	wdrw		[0-9\.\s]{10}
+	debit		[0-9\.\s]{10}
 	_			\ {1}
-	dep			[0-9\.,\s]{10}
+	credit			[0-9\.,\s]{10}
 	end			.*$
 }

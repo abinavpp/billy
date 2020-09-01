@@ -57,7 +57,7 @@ sub trans_struct_set {
           my $regex_frag_name = $1;
           my $regex_frag = $2;
 
-          if ($regex_frag_name =~ /^(date|narr|wdrw|dep)$/) {
+          if ($regex_frag_name =~ /^(date|narr|debit|credit)$/) {
             $$trans_struct{$bank_name}{regex} .= "(?<$regex_frag_name>" .
             $regex_frag . ")";
           } else {
@@ -130,8 +130,8 @@ sub cat_struct_set {
         } else {
           $$cat_struct{$cat_name}{narr} = "";
           $$cat_struct{$cat_name}{count} = 0;
-          $$cat_struct{$cat_name}{dep_total} = 0;
-          $$cat_struct{$cat_name}{wdrw_total} = 0;
+          $$cat_struct{$cat_name}{credit_total} = 0;
+          $$cat_struct{$cat_name}{debit_total} = 0;
           last;
         }
 
@@ -149,10 +149,10 @@ sub cat_struct_insert {
   my ($cat_struct, $cat_name, %words) = @_;
 
   $$cat_struct{$cat_name}{narr} .= "$words{date} \t $words{narr} \t " .
-  "$words{wdrw} \t $words{dep} \n";
+  "$words{debit} \t $words{credit} \n";
 
-  $$cat_struct{$cat_name}{wdrw_total} += atoi($words{wdrw});
-  $$cat_struct{$cat_name}{dep_total} += atoi($words{dep});
+  $$cat_struct{$cat_name}{debit_total} += atoi($words{debit});
+  $$cat_struct{$cat_name}{credit_total} += atoi($words{credit});
   $$cat_struct{$cat_name}{count}++;
 }
 
@@ -197,10 +197,10 @@ sub cat_print {
     print $$cat_struct{$cat_name}{narr};
     print "---------\n";
     say "Total transaction count : $$cat_struct{$cat_name}{count}";
-    say "Withdrawal total : " .
-    num_commify($$cat_struct{$cat_name}{wdrw_total});
-    say "Deposit total : " .
-    num_commify($$cat_struct{$cat_name}{dep_total});
+    say "Debit total : " .
+    num_commify($$cat_struct{$cat_name}{debit_total});
+    say "Credit total : " .
+    num_commify($$cat_struct{$cat_name}{credit_total});
     print "\n\n\n";
   }
 }
@@ -336,7 +336,7 @@ cat_print(\%cat_struct);
 
 cathook_do(\%cat_struct);
 
-cat_print_overall(\%cat_struct, 'dep_total');
-cat_print_overall(\%cat_struct, 'wdrw_total');
+cat_print_overall(\%cat_struct, 'credit_total');
+cat_print_overall(\%cat_struct, 'debit_total');
 
 exit 0;
