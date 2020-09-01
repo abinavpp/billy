@@ -2,11 +2,11 @@
 # Comments are only allowed outside "bank{} blocks".
 #
 # bank_name {
-# 	valid_attr1	regex_frag_for_attr1
-# 	valid_attr2	regex_frag_for_attr2
-# 	dummy	regex_frag_3
-# 	another_dummy	regex_frag_4
-# 	...
+#   valid_attr1 regex_frag_for_attr1
+#   valid_attr2 regex_frag_for_attr2
+#   dummy regex_frag_3
+#   another_dummy regex_frag_4
+#   ...
 # }
 #
 # valid_attrs so far include date, narr, debit, credit.
@@ -25,30 +25,30 @@
 # Below are 2 real examples for the text statement of 2 banks in India.
 
 hdfc {
-	beg			^
-	date		\d\d/\d\d/\d\d
-	_ 			\s{2}
-	narr		[[:print:]]{40}
-	_ 			\s{2}
-	_refno		[\w\s]{16}
-	_ 			\s{2}
-	_date		\d\d/\d\d/\d\d\s{2}
-	debit		[0-9\.,\s]{18}
-	_ 			\s{2}
-	credit			[0-9\.,\s]{18}
-	_ 			\s{2}
-	_bal		[0-9\.,\s]{18}\s{2}
-	end			$
+  beg     ^
+  date    \d\d/\d\d/\d\d
+  _       \s{2}
+  narr    [[:print:]]{40}
+  _       \s{2}
+  _refno  [\w\s]{16}
+  _       \s{2}
+  _date   \d\d/\d\d/\d\d\s{2}
+  debit   [0-9\.,\s]{18}
+  _       \s{2}
+  credit  [0-9\.,\s]{18}
+  _       \s{2}
+  _bal    [0-9\.,\s]{18}\s{2}
+  end     $
 }
 
 axis {
-	beg			^
-	date		\d\d-\d\d-\d\d\d\d
-	_			\ {10}-\ {15}
-	narr		[[:print:]]{70}
-	_			\ {2}
-	debit		[0-9\.\s]{10}
-	_			\ {1}
-	credit			[0-9\.,\s]{10}
-	end			.*$
+  beg     ^
+  date    \d\d-\d\d-\d\d\d\d
+  _       \ {10}-\ {15}
+  narr    [[:print:]]{70}
+  _       \ {2}
+  debit   [0-9\.\s]{10}
+  _       \ {1}
+  credit  [0-9\.,\s]{10}
+  end     .*$
 }

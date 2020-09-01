@@ -3,16 +3,16 @@
 #
 # The syntax of cat-regex-list definition is
 # <cat_name> {
-# 	<regex_1>
-# 	<regex_2>
+#   <regex_1>
+#   <regex_2>
 # }
 # which makes <regex_1> and <regex_2> associated with <cat_name>, to be
 # matched with the narration of each entries.
 #
 # The syntax of cat-hook definition is 
 # <already_defined_cat_name> <hook_type> {
-# 	<hook_type_instr>
-# 	<hook_type_instr>
+#   <hook_type_instr>
+#   <hook_type_instr>
 # }
 # The only implemented hook is the overall hook that only affects the
 # overall output at the end.
@@ -23,25 +23,25 @@
 
 
 food {
-	.*swiggy.*
-	.*tibet\s*kitchen.*
-	.*hotel\ foobar.*
+  .*swiggy.*
+  .*tibet\s*kitchen.*
+  .*hotel\ foobar.*
 }
 
 groceries {
-	.*bigbasket.*
-	.*max\ hypermarket.*
+  .*bigbasket.*
+  .*max\ hypermarket.*
 }
 
 transport {
-	.*uber.*
-	.*ola.*
-	.*makemytrip.*
+  .*uber.*
+  .*ola.*
+  .*makemytrip.*
 }
 
 shopping {
-	.*amazon.*
-	.*flipkart.*
+  .*amazon.*
+  .*flipkart.*
 }
 
 # you can have empty cat-def too (if they are used by any hook)
@@ -69,7 +69,7 @@ cash_in_hand {
 
 
 __uncat__ overall {
-	del debit_total 100
-	donate misc debit_total 200
-	donate cash_in_hand debit_total
+  del debit_total 100
+  donate misc debit_total 200
+  donate cash_in_hand debit_total
 }

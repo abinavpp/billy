@@ -58,8 +58,8 @@ sub trans_struct_set {
           my $regex_frag = $2;
 
           if ($regex_frag_name =~ /^(date|narr|debit|credit)$/) {
-            $$trans_struct{$bank_name}{regex} .= "(?<$regex_frag_name>" .
-            $regex_frag . ")";
+            $$trans_struct{$bank_name}{regex} .= "(?<$regex_frag_name>"
+              . $regex_frag . ")";
           } else {
             $$trans_struct{$bank_name}{regex} .= $regex_frag;
           }
@@ -148,8 +148,8 @@ sub cat_struct_set {
 sub cat_struct_insert {
   my ($cat_struct, $cat_name, %words) = @_;
 
-  $$cat_struct{$cat_name}{narr} .= "$words{date} \t $words{narr} \t " .
-  "$words{debit} \t $words{credit} \n";
+  $$cat_struct{$cat_name}{narr} .= "$words{date}\t$words{narr}\t"
+    . "$words{debit}\t$words{credit}\n";
 
   $$cat_struct{$cat_name}{debit_total} += atoi($words{debit});
   $$cat_struct{$cat_name}{credit_total} += atoi($words{credit});
@@ -192,15 +192,15 @@ sub cat_print {
   my ($cat_struct) = @_;
 
   foreach my $cat_name (sort keys %{$cat_struct}) {
-    say "CATEGORY : $cat_name";
+    say "CATEGORY: $cat_name";
     say "=====================";
     print $$cat_struct{$cat_name}{narr};
     print "---------\n";
-    say "Total transaction count : $$cat_struct{$cat_name}{count}";
-    say "Debit total : " .
-    num_commify($$cat_struct{$cat_name}{debit_total});
-    say "Credit total : " .
-    num_commify($$cat_struct{$cat_name}{credit_total});
+    say "Total transaction count: $$cat_struct{$cat_name}{count}";
+    say "debit_total: "
+      . num_commify($$cat_struct{$cat_name}{debit_total});
+    say "credit_total: "
+      . num_commify($$cat_struct{$cat_name}{credit_total});
     print "\n\n\n";
   }
 }
@@ -230,7 +230,7 @@ sub cathook_overall {
     } elsif ($cmd eq "del") {
       my $cat_attr = $words[1];
       my $delta_val = defined $words[2] ? $words[2] :
-      $$cat_struct{$cat_name}{$cat_attr};
+        $$cat_struct{$cat_name}{$cat_attr};
       $$cat_struct{$cat_name}{$cat_attr} -= $delta_val;
     }
   }
@@ -262,11 +262,11 @@ sub cat_print_overall {
     }
 
     $grand_total += $$cat_struct{$cat_name}{$x_total};
-    printf( "%15s : %10s\n\n", $cat_name,
+    printf("%15s: %10s\n\n", $cat_name,
       num_commify($$cat_struct{$cat_name}{$x_total}));
   }
   say "------------------";
-  printf("%15s : %10s\n\n\n\n", "grand total",
+  printf("%15s: %10s\n\n\n\n", "grand total",
     num_commify($grand_total));
 }
 
