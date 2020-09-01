@@ -307,7 +307,7 @@ sub opt_handler_help {
 
 sub opt_handler_version {
   say "billy v0.1";
-  say "(C) 2018 Abinav Puthan Purayil";
+  say "(C) 2020 Abinav Puthan Purayil";
   exit 0;
 }
 
